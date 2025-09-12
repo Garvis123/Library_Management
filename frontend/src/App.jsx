@@ -222,20 +222,22 @@ const Header = () => {
           </div>
 
           <div className="flex items-center space-x-6">
-            <div className="text-sm text-gray-600 hidden sm:block">
+            <div className="text-sm text-gray-600 hidden sm:flex items-center space-x-3 bg-gradient-to-r from-gray-50 to-blue-50 px-4 py-2 rounded-full shadow-sm">
               <span className="text-gray-500">Welcome back,</span>
-              <span className="font-semibold text-gray-900 ml-1">{user?.name}</span>
-              {isAdmin() && (
-                <span className="ml-3 px-3 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 text-xs rounded-full font-semibold border border-blue-200">
-                  Administrator
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-gray-900">{user?.name}</span>
+                {isAdmin() && (
+                  <span className="px-3 py-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs rounded-full font-semibold shadow-sm hover:shadow-md transition-all duration-300 hover:from-blue-600 hover:to-indigo-700">
+                    Administrator
+                  </span>
+                )}
+              </div>
             </div>
             <button
               onClick={logout}
-              className="inline-flex items-center px-5 py-2.5 border border-gray-200 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md"
+              className="inline-flex items-center px-5 py-2.5 border border-gray-200 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gradient-to-r hover:from-red-50 hover:to-rose-50 hover:text-red-600 hover:border-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-300 shadow-sm hover:shadow-md group"
             >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -252,12 +254,14 @@ const Header = () => {
   )
 }
 
-const BookCard = ({ book, onBorrow, onReturn, userBorrowedBooks = [] }) => {
+const BookCard = ({ book, onBorrow, onReturn, onDelete, userBorrowedBooks = [] }) => {
   const [isLoading, setIsLoading] = useState(false)
+  const { isAdmin } = useAuth()
 
   const isUserBorrowed = userBorrowedBooks.some((borrowed) => borrowed.bookId === book.id)
   const canBorrow = book.isAvailable && !isUserBorrowed
   const canReturn = isUserBorrowed
+  const canDelete = isAdmin() && book.isAvailable // Simplified condition for testing
 
   const handleBorrow = async () => {
     setIsLoading(true)
@@ -270,27 +274,41 @@ const BookCard = ({ book, onBorrow, onReturn, userBorrowedBooks = [] }) => {
     await onReturn(book.id)
     setIsLoading(false)
   }
+  
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this book? This action cannot be undone.')) {
+      setIsLoading(true)
+      await onDelete(book.id)
+      setIsLoading(false)
+    }
+  }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 border border-gray-100 hover:border-gray-200 group">
+    <div className="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 border border-gray-100 hover:border-gray-200 group hover:-translate-y-1 hover:bg-gradient-to-br hover:from-white hover:to-blue-50/30">
       <div className="flex justify-between items-start mb-5">
         <div className="flex-1">
-          <h3 className="text-lg font-bold text-gray-900 mb-3 text-balance group-hover:text-blue-700 transition-colors duration-200">
+          <h3 className="text-lg font-bold text-gray-900 mb-3 text-balance group-hover:text-blue-700 transition-colors duration-200 line-clamp-2">
             {book.title}
           </h3>
-          <p className="text-gray-600 mb-2 font-medium">by {book.author}</p>
-          <p className="text-sm text-gray-500 mb-4 font-mono bg-gray-50 px-2 py-1 rounded-md inline-block">
-            ISBN: {book.isbn}
+          <p className="text-gray-600 mb-2 font-medium flex items-center gap-2">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            {book.author}
           </p>
-          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border border-gray-200">
+          <p className="text-sm text-gray-500 mb-4 font-mono bg-gradient-to-r from-gray-50 to-gray-100 px-3 py-1.5 rounded-lg inline-block border border-gray-200/50 group-hover:border-gray-200 transition-colors duration-300">
+            <span className="text-gray-400 mr-1">ISBN:</span>
+            {book.isbn}
+          </p>
+          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200 group-hover:from-blue-100 group-hover:to-indigo-100 transition-all duration-300 shadow-sm">
             {book.genre}
           </span>
         </div>
         <div
-          className={`px-3 py-1.5 rounded-full text-xs font-bold shadow-sm ${
+          className={`px-4 py-2 rounded-full text-xs font-bold shadow-sm transform transition-all duration-300 ${
             book.isAvailable
-              ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200"
-              : "bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border border-red-200"
+              ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200 group-hover:from-green-100 group-hover:to-emerald-100 group-hover:shadow"
+              : "bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border border-red-200 group-hover:from-red-100 group-hover:to-rose-100 group-hover:shadow"
           }`}
         >
           {book.isAvailable ? "Available" : "Unavailable"}
@@ -298,12 +316,16 @@ const BookCard = ({ book, onBorrow, onReturn, userBorrowedBooks = [] }) => {
       </div>
 
       <div className="flex justify-between items-center mb-6">
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 rounded-lg border border-blue-100">
-          <span className="text-sm text-blue-600 font-medium">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 rounded-lg border border-blue-100 group-hover:shadow-md transition-all duration-300 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/5 to-indigo-500/0 group-hover:translate-x-full transition-transform duration-1000"></div>
+          <span className="text-sm text-blue-600 font-medium flex items-center gap-2">
+            <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            </svg>
             <span className="font-bold text-blue-700">{book.availableCopies}</span>
-            <span className="text-blue-500 mx-1">of</span>
+            <span className="text-blue-500">of</span>
             <span className="font-bold text-blue-700">{book.totalCopies}</span>
-            <span className="text-blue-500 ml-1">available</span>
+            <span className="text-blue-500">available</span>
           </span>
         </div>
       </div>
@@ -347,10 +369,29 @@ const BookCard = ({ book, onBorrow, onReturn, userBorrowedBooks = [] }) => {
           </button>
         )}
 
-        {!canBorrow && !canReturn && (
+        {!canBorrow && !canReturn && !canDelete && (
           <div className="flex-1 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-600 px-4 py-3 rounded-lg text-sm font-semibold text-center border border-gray-200">
             {isUserBorrowed ? "Currently Borrowed" : "Not Available"}
           </div>
+        )}
+
+        {canDelete && (
+          <button
+            onClick={handleDelete}
+            disabled={isLoading}
+            className="flex-1 bg-gradient-to-r from-red-600 to-rose-600 text-white px-4 py-3 rounded-lg text-sm font-semibold hover:from-red-700 hover:to-rose-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+          >
+            {isLoading ? (
+              <LoadingSpinner size="small" />
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Delete
+              </>
+            )}
+          </button>
         )}
       </div>
     </div>
@@ -359,40 +400,50 @@ const BookCard = ({ book, onBorrow, onReturn, userBorrowedBooks = [] }) => {
 
 const SearchBar = ({ searchTerm, onSearch, onClear }) => {
   return (
-    <div className="relative mb-10">
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-        </div>
-        <input
-          type="text"
-          className="block w-full pl-12 pr-12 py-4 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 shadow-sm hover:shadow-md transition-all duration-200 text-lg"
-          placeholder="Search books by title, author, or ISBN..."
-          value={searchTerm}
-          onChange={(e) => onSearch(e.target.value)}
-        />
-        {searchTerm && (
-          <button
-            onClick={onClear}
-            className="absolute inset-y-0 right-0 pr-4 flex items-center hover:bg-gray-50 rounded-r-xl px-3 transition-colors duration-200 group"
-          >
-            <svg
-              className="h-5 w-5 text-gray-400 group-hover:text-gray-600 transition-colors duration-200"
-              fill="none"
-              viewBox="0 0 24 24"
+    <div className="relative mb-10 max-w-4xl mx-auto">
+      <div className="relative group">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
+        <div className="relative bg-white rounded-2xl shadow-xl border border-gray-100 hover:border-blue-200 transition-all duration-300">
+          <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+            <svg 
+              className="h-6 w-6 text-gray-400 group-hover:text-blue-500 transition-colors duration-300" 
+              fill="none" 
+              viewBox="0 0 24 24" 
               stroke="currentColor"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
             </svg>
-          </button>
-        )}
+          </div>
+          <input
+            type="text"
+            className="block w-full pl-14 pr-12 py-5 rounded-2xl bg-transparent placeholder-gray-400 focus:placeholder-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg transition-all duration-300"
+            placeholder="Search books by title, author, or ISBN..."
+            value={searchTerm}
+            onChange={(e) => onSearch(e.target.value)}
+          />
+          {searchTerm && (
+            <button
+              onClick={onClear}
+              className="absolute inset-y-0 right-0 pr-5 flex items-center group/clear"
+            >
+              <div className="p-2 rounded-full hover:bg-gray-100 transition-colors duration-300">
+                <svg
+                  className="h-5 w-5 text-gray-400 group-hover/clear:text-gray-600 group-hover/clear:rotate-90 transition-all duration-300"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -557,7 +608,7 @@ const AddBookForm = ({ onAddBook, onCancel }) => {
 }
 
 const Dashboard = () => {
-  const { user, isAdmin } = useAuth()
+  const { isAdmin } = useAuth()
   const [books, setBooks] = useState(SAMPLE_BOOKS)
   const [searchTerm, setSearchTerm] = useState("")
   const [showAddForm, setShowAddForm] = useState(false)
@@ -638,58 +689,96 @@ const Dashboard = () => {
     showNotification(`Successfully added "${bookData.title}"`)
   }
 
+  const handleDeleteBook = async (bookId) => {
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      const bookToDelete = books.find(b => b.id === bookId)
+      if (!bookToDelete) return
+
+      setBooks(prev => prev.filter(b => b.id !== bookId))
+      showNotification(`Successfully deleted "${bookToDelete.title}"`)
+    } catch {
+      showNotification("Error deleting book", "error")
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 bg-fixed">
       <Header />
 
-      <main className="max-w-7xl mx-auto py-12 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 animate-fadeIn">
         {notification && (
           <div
-            className={`mb-8 p-5 rounded-xl border-l-4 shadow-lg ${
+            className={`mb-8 p-5 rounded-xl border-l-4 shadow-lg transform transition-all duration-500 animate-slideInDown ${
               notification.type === "success"
-                ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border-green-400"
-                : "bg-gradient-to-r from-red-50 to-rose-50 text-red-800 border-red-400"
-            } mx-4 sm:mx-0`}
+                ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border-green-400 hover:from-green-100 hover:to-emerald-100"
+                : "bg-gradient-to-r from-red-50 to-rose-50 text-red-800 border-red-400 hover:from-red-100 hover:to-rose-100"
+            } mx-4 sm:mx-0 hover:shadow-xl relative overflow-hidden cursor-pointer group`}
+            onClick={() => setNotification(null)}
           >
-            <div className="flex items-center gap-3">
+            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+            <div className="flex items-center gap-3 relative">
               {notification.type === "success" ? (
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4" />
-                </svg>
+                <div className="rounded-full bg-green-100 p-2 group-hover:scale-110 transform transition-transform duration-300">
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4" />
+                  </svg>
+                </div>
               ) : (
-                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                  />
-                </svg>
+                <div className="rounded-full bg-red-100 p-2 group-hover:scale-110 transform transition-transform duration-300">
+                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                    />
+                  </svg>
+                </div>
               )}
-              <span className="font-semibold">{notification.message}</span>
+              <span className="font-semibold group-hover:translate-x-1 transform transition-transform duration-300">{notification.message}</span>
+              <button 
+                className="ml-auto text-gray-400 hover:text-gray-600 transition-colors duration-300"
+                onClick={(e) => { e.stopPropagation(); setNotification(null); }}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
         )}
 
         <div className="px-4 py-8 sm:px-0">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-12 gap-6">
-            <div>
-              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 text-balance mb-2">
-                {isAdmin() ? "Library Management Dashboard" : "Book Catalog"}
-              </h1>
-              <p className="text-gray-600 text-lg">
-                {isAdmin() ? "Manage your library's book collection" : "Discover and borrow books from our collection"}
-              </p>
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-12 gap-6 bg-white/50 p-8 rounded-2xl shadow-lg backdrop-blur-sm border border-white/60">
+            <div className="flex-1">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                    {isAdmin() ? "Library Management Dashboard" : "Book Catalog"}
+                  </h1>
+                  <p className="text-gray-600 text-lg mt-2">
+                    {isAdmin() ? "Manage your library's book collection" : "Discover and borrow books from our collection"}
+                  </p>
+                </div>
+              </div>
             </div>
 
             {isAdmin() && (
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
-                className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl gap-2"
+                className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-semibold rounded-xl text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 shadow-lg hover:shadow-xl gap-2 hover:scale-105 transform"
               >
                 {showAddForm ? (
                   <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 rotate-0 hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                     Cancel
@@ -720,10 +809,10 @@ const Dashboard = () => {
           <SearchBar searchTerm={searchTerm} onSearch={setSearchTerm} onClear={() => setSearchTerm("")} />
 
           {userBorrowedBooks.length > 0 && (
-            <div className="mb-12 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-8 border border-blue-200 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="mb-12 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 rounded-2xl p-8 border border-blue-200/50 shadow-lg backdrop-blur-sm hover:shadow-xl transition-all duration-300">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-300">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -732,22 +821,31 @@ const Dashboard = () => {
                     />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-blue-900">Your Borrowed Books</h3>
-                <span className="px-3 py-1 bg-blue-200 text-blue-800 text-sm font-semibold rounded-full">
-                  {userBorrowedBooks.length}
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold text-blue-900">Your Borrowed Books</h3>
+                  <p className="text-blue-600 mt-1">Keep track of your reading journey</p>
+                </div>
+                <span className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-semibold rounded-xl shadow-md">
+                  {userBorrowedBooks.length} Books
                 </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {userBorrowedBooks.map((book) => (
                   <div
                     key={book.bookId}
-                    className="bg-white rounded-lg p-6 shadow-sm border border-blue-100 hover:shadow-md transition-shadow duration-200"
+                    className="bg-white rounded-xl p-6 shadow-md border border-blue-100/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group"
                   >
-                    <h4 className="font-bold text-gray-900 mb-3 text-balance">{book.title}</h4>
-                    <div className="bg-gradient-to-r from-yellow-50 to-amber-50 px-3 py-2 rounded-lg border border-yellow-200">
-                      <p className="text-sm text-yellow-800 font-medium">
-                        <span className="font-bold">Due:</span> {book.dueDate.toLocaleDateString()}
-                      </p>
+                    <h4 className="font-bold text-gray-900 mb-4 text-balance group-hover:text-blue-700 transition-colors duration-300">{book.title}</h4>
+                    <div className="bg-gradient-to-r from-amber-50 to-yellow-50 px-4 py-3 rounded-lg border border-yellow-200/50 group-hover:border-yellow-300 transition-colors duration-300 relative overflow-hidden group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/5 to-yellow-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                      <div className="flex items-center gap-2">
+                        <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-sm text-amber-800 font-medium">
+                          Due: {book.dueDate.toLocaleDateString()}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -763,23 +861,37 @@ const Dashboard = () => {
                   book={book}
                   onBorrow={handleBorrowBook}
                   onReturn={handleReturnBook}
+                  onDelete={handleDeleteBook}
                   userBorrowedBooks={userBorrowedBooks}
                 />
               ))
             ) : (
-              <div className="col-span-full text-center py-20">
-                <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                    />
-                  </svg>
+              <div className="col-span-full text-center py-20 px-4">
+                <div className="bg-white/50 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-gray-100 max-w-2xl mx-auto">
+                  <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-8 transform hover:rotate-12 transition-transform duration-300 group">
+                    <svg className="w-12 h-12 text-blue-400 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-4">No books found</h3>
+                  <p className="text-gray-600 text-lg max-w-md mx-auto">Try adjusting your search terms or browse our complete collection to find what you're looking for</p>
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="mt-6 inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors duration-300"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                      </svg>
+                      Clear search
+                    </button>
+                  )}
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">No books found</h3>
-                <p className="text-gray-500 text-lg">Try adjusting your search terms to find what you're looking for</p>
               </div>
             )}
           </div>
